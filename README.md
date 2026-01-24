@@ -26,7 +26,7 @@ The application runs in full-screen mode, cycling through your configured dashbo
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/Noc-Dashboard-Center.git
+git clone https://github.com/dalehassinger/Noc-Dashboard-Center.git
 cd Noc-Dashboard-Center
 ```
 
@@ -78,7 +78,7 @@ sudo apt-get install -y nodejs
 sudo apt-get install -y libgtk-3-0 libnotify4 libnss3 libxss1 libxtst6 xdg-utils libatspi2.0-0 libdrm2 libgbm1 libxcb-dri3-0
 
 # Clone and setup
-git clone https://github.com/yourusername/Noc-Dashboard-Center.git
+git clone https://github.com/dalehassinger/Noc-Dashboard-Center.git
 cd Noc-Dashboard-Center
 npm install
 ```
@@ -227,7 +227,7 @@ Settings are stored locally in:
   "dashboards": [
     {
       "description": "Network Status",
-      "url": "https://grafana.example.com/dashboard/network",
+      "url": "https://vcf.example.com/dashboard/network",
       "duration": 30
     },
     {
