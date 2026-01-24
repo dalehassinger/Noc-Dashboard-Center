@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOC Dashboard Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #2d3748;
+    }
+
+    header h1 {
+      color: #4da8da;
+      font-size: 1.8rem;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #718096;
+      font-size: 0.9rem;
+    }
+
+    .status-bar {
+      background: #2d3748;
+      padding: 10px 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #48bb78;
+    }
+
+    .status-dot.error {
+      background: #f56565;
+    }
+
+    .card {
+      background: rgba(45, 55, 72, 0.7);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      color: #4da8da;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #3d4a5c;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      color: #a0aec0;
+      font-size: 0.9rem;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    input[type="url"],
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #3d4a5c;
+      border-radius: 6px;
+      background: #1a202c;
+      color: #e0e0e0;
+      font-size: 1rem;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #4da8da;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #4da8da;
+      color: #1a1a2e;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: #63b3de;
+    }
+
+    .btn-secondary {
+      background: #4a5568;
+      color: #e0e0e0;
+    }
+
+    .btn-secondary:hover {
+      background: #5a6578;
+    }
+
+    .btn-danger {
+      background: #e53e3e;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #f56565;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+    }
+
+    .dashboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .dashboard-item {
+      background: #1a202c;
+      border: 1px solid #3d4a5c;
+      border-radius: 8px;
+      padding: 15px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .dashboard-order {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .dashboard-order button {
+      background: #4a5568;
+      border: none;
+      color: #e0e0e0;
+      width: 28px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+
+    .dashboard-order button:hover {
+      background: #5a6578;
+    }
+
+    .dashboard-order button:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .dashboard-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dashboard-description {
+      color: #e0e0e0;
+      font-size: 1rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .dashboard-url {
+      color: #4da8da;
+      font-size: 0.85rem;
+      word-break: break-all;
+      margin-bottom: 4px;
+    }
+
+    .dashboard-duration {
+      color: #718096;
+      font-size: 0.8rem;
+    }
+
+    .dashboard-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #718096;
+    }
+
+    .empty-state p {
+      margin-bottom: 15px;
+    }
+
+    .server-settings {
+      display: flex;
+      align-items: flex-end;
+      gap: 15px;
+    }
+
+    .server-settings .form-group {
+      margin-bottom: 0;
+      flex: 0 0 120px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #48bb78;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.error {
+      background: #e53e3e;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 15px;
+      }
+
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .dashboard-item {
+        flex-wrap: wrap;
+      }
+
+      .dashboard-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 10px;
+      }
+
+      .server-settings {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .server-settings .form-group {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>NOC Dashboard Settings</h1>
+      <p>Remote configuration for NOC Dashboard Center</p>
+    </header>
+
+    <div class="status-bar">
+      <div class="status-indicator">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Connected</span>
+      </div>
+      <div id="network-info"></div>
+    </div>
+
+    <div class="card">
+      <h2>Add Dashboard</h2>
+      <div class="form-group">
+        <label for="new-description">Description</label>
+        <input type="text" id="new-description" placeholder="e.g., Network Status, Server Health">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="flex: 2;">
+          <label for="new-url">Dashboard URL</label>
+          <input type="url" id="new-url" placeholder="https://example.com/dashboard">
+        </div>
+        <div class="form-group" style="flex: 0 0 140px;">
+          <label for="new-duration">Duration (sec)</label>
+          <input type="number" id="new-duration" min="5" max="3600" value="30">
+        </div>
+      </div>
+      <button class="btn btn-primary" id="add-btn">Add Dashboard</button>
+    </div>
+
+    <div class="card">
+      <h2>Configured Dashboards</h2>
+      <div id="dashboard-list" class="dashboard-list">
+        <div class="empty-state">
+          <p>No dashboards configured yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Server Settings</h2>
+      <div class="server-settings">
+        <div class="form-group">
+          <label for="server-port">Web Server Port</label>
+          <input type="number" id="server-port" min="1024" max="65535" value="3000">
+        </div>
+        <button class="btn btn-secondary" id="save-port-btn">Update Port</button>
+      </div>
+      <p style="color: #718096; font-size: 0.85rem; margin-top: 10px;">
+        Changing the port will restart the web server. You'll need to reconnect using the new port.
+      </p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let settings = { dashboards: [], webServerPort: 3000 };
+
+    async function loadSettings() {
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          settings = await response.json();
+          if (!settings.dashboards) settings.dashboards = [];
+          if (!settings.webServerPort) settings.webServerPort = 3000;
+          renderDashboards();
+          document.getElementById('server-port').value = settings.webServerPort;
+        } else {
+          showToast('Failed to load settings', true);
+        }
+      } catch (error) {
+        showToast('Connection error', true);
+        document.getElementById('status-dot').classList.add('error');
+        document.getElementById('status-text').textContent = 'Disconnected';
+      }
+    }
+
+    async function saveSettings() {
+      try {
+        const response = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(settings)
+        });
+
+        if (response.ok) {
+          showToast('Settings saved');
+          return true;
+        } else {
+          showToast('Failed to save settings', true);
+          return false;
+        }
+      } catch (error) {
+        showToast('Connection error', true);
+        return false;
+      }
+    }
+
+    async function loadStatus() {
+      try {
+        const response = await fetch('/api/status');
+        if (response.ok) {
+          const status = await response.json();
+          const networkInfo = document.getElementById('network-info');
+          if (status.addresses && status.addresses.length > 0) {
+            networkInfo.textContent = `Access: http://${status.addresses[0]}:${status.port}`;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load status');
+      }
+    }
+
+    function renderDashboards() {
+      const container = document.getElementById('dashboard-list');
+
+      if (settings.dashboards.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>No dashboards configured yet.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = settings.dashboards.map((dashboard, index) => `
+        <div class="dashboard-item">
+          <div class="dashboard-order">
+            <button onclick="moveDashboard(${index}, -1)" ${index === 0 ? 'disabled' : ''}>&#9650;</button>
+            <button onclick="moveDashboard(${index}, 1)" ${index === settings.dashboards.length - 1 ? 'disabled' : ''}>&#9660;</button>
+          </div>
+          <div class="dashboard-info">
+            <div class="dashboard-description">${escapeHtml(dashboard.description || 'No description')}</div>
+            <div class="dashboard-url">${escapeHtml(dashboard.url)}</div>
+            <div class="dashboard-duration">${dashboard.duration} seconds</div>
+          </div>
+          <div class="dashboard-actions">
+            <button class="btn btn-secondary btn-small" onclick="editDashboard(${index})">Edit</button>
+            <button class="btn btn-danger btn-small" onclick="deleteDashboard(${index})">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function addDashboard() {
+      const descriptionInput = document.getElementById('new-description');
+      const urlInput = document.getElementById('new-url');
+      const durationInput = document.getElementById('new-duration');
+
+      const description = descriptionInput.value.trim();
+      const url = urlInput.value.trim();
+      const duration = parseInt(durationInput.value) || 30;
+
+      if (!url) {
+        showToast('Please enter a URL', true);
+        return;
+      }
+
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        showToast('URL must start with http:// or https://', true);
+        return;
+      }
+
+      settings.dashboards.push({ description, url, duration });
+      renderDashboards();
+      saveSettings();
+
+      descriptionInput.value = '';
+      urlInput.value = '';
+      durationInput.value = '30';
+    }
+
+    function editDashboard(index) {
+      const dashboard = settings.dashboards[index];
+
+      const newDescription = prompt('Description:', dashboard.description || '');
+      if (newDescription === null) return;
+
+      const newUrl = prompt('Dashboard URL:', dashboard.url);
+      if (newUrl === null) return;
+
+      if (!newUrl.trim()) {
+        showToast('URL cannot be empty', true);
+        return;
+      }
+
+      const newDuration = prompt('Duration (seconds):', dashboard.duration);
+      if (newDuration === null) return;
+
+      const duration = parseInt(newDuration);
+      if (isNaN(duration) || duration < 5 || duration > 3600) {
+        showToast('Duration must be between 5 and 3600 seconds', true);
+        return;
+      }
+
+      settings.dashboards[index] = { description: newDescription.trim(), url: newUrl.trim(), duration };
+      renderDashboards();
+      saveSettings();
+    }
+
+    function deleteDashboard(index) {
+      if (confirm('Delete this dashboard?')) {
+        settings.dashboards.splice(index, 1);
+        renderDashboards();
+        saveSettings();
+      }
+    }
+
+    function moveDashboard(index, direction) {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= settings.dashboards.length) return;
+
+      const temp = settings.dashboards[index];
+      settings.dashboards[index] = settings.dashboards[newIndex];
+      settings.dashboards[newIndex] = temp;
+
+      renderDashboards();
+      saveSettings();
+    }
+
+    async function updatePort() {
+      const portInput = document.getElementById('server-port');
+      const newPort = parseInt(portInput.value);
+
+      if (isNaN(newPort) || newPort < 1024 || newPort > 65535) {
+        showToast('Port must be between 1024 and 65535', true);
+        return;
+      }
+
+      const oldPort = settings.webServerPort;
+      settings.webServerPort = newPort;
+
+      if (await saveSettings()) {
+        if (newPort !== oldPort) {
+          showToast(`Port changed. Reconnecting to port ${newPort}...`);
+          setTimeout(() => {
+            window.location.href = `http://${window.location.hostname}:${newPort}`;
+          }, 2000);
+        }
+      } else {
+        settings.webServerPort = oldPort;
+        portInput.value = oldPort;
+      }
+    }
+
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.toggle('error', isError);
+      toast.classList.add('show');
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // Event listeners
+    document.getElementById('add-btn').addEventListener('click', addDashboard);
+    document.getElementById('save-port-btn').addEventListener('click', updatePort);
+
+    document.getElementById('new-url').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addDashboard();
+    });
+
+    // Initial load
+    loadSettings();
+    loadStatus();
+  </script>
+</body>
+</html>

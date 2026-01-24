@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-src *; child-src *">
+  <title>NOC Dashboard Center</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Welcome Screen -->
+    <div id="welcome-screen" class="hidden">
+      <div class="welcome-content">
+        <h1>NOC Dashboard Center</h1>
+        <p>No dashboards configured yet.</p>
+        <div class="instructions">
+          <p>To get started:</p>
+          <ul>
+            <li>Click the gear icon in the top-right corner, or</li>
+            <li>Press <kbd>Ctrl</kbd>+<kbd>S</kbd> (Windows/Linux) or <kbd>Cmd</kbd>+<kbd>S</kbd> (Mac)</li>
+          </ul>
+          <p>to open settings and add your dashboard URLs.</p>
+        </div>
+        <button id="welcome-settings-btn" class="primary-btn">Open Settings</button>
+      </div>
+    </div>
+
+    <!-- Dashboard Container -->
+    <div id="dashboard-container" class="hidden">
+      <webview id="dashboard-webview" src="about:blank" allowpopups webpreferences="allowRunningInsecureContent=yes"></webview>
+
+      <!-- Loading Indicator -->
+      <div id="loading-indicator" class="hidden">
+        <div class="spinner"></div>
+        <p>Loading dashboard...</p>
+      </div>
+    </div>
+
+    <!-- Settings Gear Icon -->
+    <div id="settings-icon" title="Settings (Ctrl+S)">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </div>
+
+    <!-- Progress Bar -->
+    <div id="progress-bar-container" class="hidden">
+      <div id="progress-bar"></div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden">
+      <div class="settings-content">
+        <div class="settings-header">
+          <h2>Dashboard Settings</h2>
+          <button id="close-settings" class="icon-btn" title="Close (Escape)">&times;</button>
+        </div>
+
+        <div class="settings-body">
+          <div class="add-dashboard">
+            <h3>Add Dashboard</h3>
+            <div class="form-group">
+              <label for="new-description">Description</label>
+              <input type="text" id="new-description" placeholder="e.g., Network Status, Server Health">
+            </div>
+            <div class="form-group">
+              <label for="new-url">URL</label>
+              <input type="url" id="new-url" placeholder="https://example.com/dashboard">
+            </div>
+            <div class="form-group">
+              <label for="new-duration">Display Duration (seconds)</label>
+              <input type="number" id="new-duration" min="5" max="3600" value="30">
+            </div>
+            <button id="add-dashboard-btn" class="primary-btn">Add Dashboard</button>
+          </div>
+
+          <div class="dashboard-list">
+            <h3>Configured Dashboards</h3>
+            <div id="dashboards-container">
+              <p class="empty-message">No dashboards configured.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-footer">
+          <button id="save-settings-btn" class="primary-btn">Save & Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
