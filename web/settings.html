@@ -123,6 +123,22 @@
       border-color: #4da8da;
     }
 
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      color: #e0e0e0;
+      font-size: 1rem;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #4da8da;
+      cursor: pointer;
+    }
+
     .btn {
       padding: 10px 20px;
       border: none;
@@ -163,6 +179,15 @@
     .btn-small {
       padding: 6px 12px;
       font-size: 0.85rem;
+    }
+
+    .form-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .hidden {
+      display: none !important;
     }
 
     .dashboard-list {
@@ -342,7 +367,10 @@
           <input type="number" id="new-duration" min="5" max="3600" value="30">
         </div>
       </div>
-      <button class="btn btn-primary" id="add-btn">Add Dashboard</button>
+      <div class="form-buttons">
+        <button class="btn btn-primary" id="add-btn">Add Dashboard</button>
+        <button class="btn btn-secondary hidden" id="cancel-edit-btn" onclick="cancelEdit()">Cancel</button>
+      </div>
     </div>
 
     <div class="card">
@@ -351,6 +379,19 @@
         <div class="empty-state">
           <p>No dashboards configured yet.</p>
         </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Display Settings</h2>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="fullscreen-checkbox" checked>
+          <span>Full Screen Mode</span>
+        </label>
+        <p style="color: #718096; font-size: 0.85rem; margin-top: 8px;">
+          Toggle fullscreen mode. App always starts in fullscreen.
+        </p>
       </div>
     </div>
 
@@ -372,7 +413,8 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    let settings = { dashboards: [], webServerPort: 3000 };
+    let settings = { dashboards: [], webServerPort: 3000, fullscreen: true };
+    let editingIndex = -1; // -1 means adding new, >= 0 means editing existing
 
     async function loadSettings() {
       try {
@@ -381,8 +423,10 @@
           settings = await response.json();
           if (!settings.dashboards) settings.dashboards = [];
           if (!settings.webServerPort) settings.webServerPort = 3000;
+          if (settings.fullscreen === undefined) settings.fullscreen = true;
           renderDashboards();
           document.getElementById('server-port').value = settings.webServerPort;
+          document.getElementById('fullscreen-checkbox').checked = settings.fullscreen !== false;
         } else {
           showToast('Failed to load settings', true);
         }
@@ -485,7 +529,18 @@
         return;
       }
 
-      settings.dashboards.push({ description, url, duration });
+      if (editingIndex >= 0) {
+        // Update existing dashboard
+        settings.dashboards[editingIndex] = { description, url, duration };
+        editingIndex = -1;
+        document.getElementById('add-btn').textContent = 'Add Dashboard';
+        document.getElementById('cancel-edit-btn').classList.add('hidden');
+        showToast('Dashboard updated');
+      } else {
+        // Add new dashboard
+        settings.dashboards.push({ description, url, duration });
+        showToast('Dashboard added');
+      }
       renderDashboards();
       saveSettings();
 
@@ -496,30 +551,31 @@
 
     function editDashboard(index) {
       const dashboard = settings.dashboards[index];
+      editingIndex = index;
 
-      const newDescription = prompt('Description:', dashboard.description || '');
-      if (newDescription === null) return;
+      // Populate the form with existing values
+      document.getElementById('new-description').value = dashboard.description || '';
+      document.getElementById('new-url').value = dashboard.url;
+      document.getElementById('new-duration').value = dashboard.duration;
 
-      const newUrl = prompt('Dashboard URL:', dashboard.url);
-      if (newUrl === null) return;
+      // Change button text to indicate editing and show cancel button
+      document.getElementById('add-btn').textContent = 'Update Dashboard';
+      document.getElementById('cancel-edit-btn').classList.remove('hidden');
 
-      if (!newUrl.trim()) {
-        showToast('URL cannot be empty', true);
-        return;
-      }
+      // Scroll to the form
+      document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
 
-      const newDuration = prompt('Duration (seconds):', dashboard.duration);
-      if (newDuration === null) return;
+      // Focus on the description field
+      document.getElementById('new-description').focus();
+    }
 
-      const duration = parseInt(newDuration);
-      if (isNaN(duration) || duration < 5 || duration > 3600) {
-        showToast('Duration must be between 5 and 3600 seconds', true);
-        return;
-      }
-
-      settings.dashboards[index] = { description: newDescription.trim(), url: newUrl.trim(), duration };
-      renderDashboards();
-      saveSettings();
+    function cancelEdit() {
+      editingIndex = -1;
+      document.getElementById('new-description').value = '';
+      document.getElementById('new-url').value = '';
+      document.getElementById('new-duration').value = '30';
+      document.getElementById('add-btn').textContent = 'Add Dashboard';
+      document.getElementById('cancel-edit-btn').classList.add('hidden');
     }
 
     function deleteDashboard(index) {
@@ -584,6 +640,13 @@
 
     document.getElementById('new-url').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') addDashboard();
+    });
+
+    document.getElementById('fullscreen-checkbox').addEventListener('change', async (e) => {
+      settings.fullscreen = e.target.checked;
+      if (await saveSettings()) {
+        showToast(settings.fullscreen ? 'Full screen enabled' : 'Window mode enabled');
+      }
     });
 
     // Initial load

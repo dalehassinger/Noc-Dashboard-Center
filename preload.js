@@ -18,6 +18,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('settings-changed', (event, settings) => callback(settings));
   },
   getServerInfo: () => ipcRenderer.invoke('get-server-info'),
+  setFullscreen: (isFullscreen) => ipcRenderer.invoke('set-fullscreen', isFullscreen),
 
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);

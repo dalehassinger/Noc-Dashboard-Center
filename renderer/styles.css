@@ -97,9 +97,11 @@ body {
 
 /* Dashboard Container */
 #dashboard-container {
-  height: 100%;
-  width: 100%;
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 #dashboard-webview {
@@ -155,6 +157,7 @@ body {
   opacity: 0;
   transition: opacity 0.3s, background 0.3s;
   z-index: 1000;
+  -webkit-app-region: no-drag;
 }
 
 #settings-icon:hover {
@@ -201,6 +204,7 @@ body:hover #settings-icon {
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  -webkit-app-region: no-drag;
 }
 
 .settings-content {
@@ -212,6 +216,7 @@ body:hover #settings-icon {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  -webkit-app-region: no-drag;
 }
 
 .settings-header {
@@ -273,6 +278,7 @@ body:hover #settings-icon {
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 1rem;
+  -webkit-app-region: no-drag;
 }
 
 .form-group input:focus {
@@ -295,10 +301,32 @@ body:hover #settings-icon {
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.2s;
+  -webkit-app-region: no-drag;
 }
 
 .primary-btn:hover {
   background: var(--accent-hover);
+}
+
+.secondary-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  -webkit-app-region: no-drag;
+}
+
+.secondary-btn:hover {
+  background: var(--border);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 12px;
 }
 
 .icon-btn {
@@ -311,6 +339,7 @@ body:hover #settings-icon {
   align-items: center;
   justify-content: center;
   transition: color 0.2s;
+  -webkit-app-region: no-drag;
 }
 
 .icon-btn:hover {
@@ -416,9 +445,14 @@ body:hover #settings-icon {
 }
 
 .move-btn svg,
+.edit-btn svg,
 .delete-btn svg {
   width: 18px;
   height: 18px;
+}
+
+.edit-btn:hover {
+  color: var(--accent);
 }
 
 .delete-btn:hover {
@@ -441,4 +475,100 @@ body:hover #settings-icon {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-secondary);
+}
+
+/* Display Settings */
+.display-settings {
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.display-settings h3 {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.help-text {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-left: 32px;
+}
+
+/* Title Bar for windowed mode */
+#title-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: drag;
+  z-index: 999;
+}
+
+#title-bar .title-text {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Adjust content when title bar is visible */
+body.windowed #dashboard-container {
+  top: 32px;
+}
+
+body.windowed #welcome-screen {
+  padding-top: 32px;
+}
+
+body.windowed #settings-icon {
+  top: 52px;
+}
+
+/* Resize Handle for windowed mode */
+#resize-handle {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: se-resize;
+  z-index: 9999;
+  background: linear-gradient(135deg, transparent 50%, var(--text-secondary) 50%, var(--text-secondary) 60%, transparent 60%, transparent 70%, var(--text-secondary) 70%, var(--text-secondary) 80%, transparent 80%);
+  opacity: 0.5;
+  -webkit-app-region: no-drag;
+}
+
+#resize-handle:hover {
+  opacity: 0.8;
 }

@@ -2,9 +2,33 @@
 
 A full-screen dashboard rotation application designed for Network Operations Centers (NOC). Display multiple web-based dashboards on a continuous rotation cycle, perfect for monitoring screens, TV displays, and kiosk setups.
 
+## Release Notes
+
+### Version 1.1.0 - January 27, 2026
+
+**New Features:**
+- **Fullscreen Toggle** - Added option to switch between fullscreen and windowed mode from the settings panel
+- **Windowed Mode Support** - When fullscreen is disabled:
+  - Draggable title bar for moving the window
+  - Resizable window with visual resize handle indicator
+  - Window defaults to 1280x800 centered on screen
+- **Improved Edit Functionality** - Dashboard editing now uses a form-based approach:
+  - Click the pencil icon to edit a dashboard
+  - Form fields populate with current values
+  - Update or Cancel buttons for clear workflow
+  - Same editing experience in both the app and web interface
+
+**Improvements:**
+- Application always starts in fullscreen mode for consistent NOC display behavior
+- Settings modal and all interactive elements work correctly in frameless window mode
+- Edit button now visible and functional in dashboard list
+
+---
+
 ## Features
 
 - **Full-screen dashboard rotation** - Automatically cycles through configured dashboards
+- **Fullscreen/Windowed mode** - Toggle between fullscreen and windowed mode; app always starts fullscreen
 - **Configurable display duration** - Set how long each dashboard is displayed (5-3600 seconds)
 - **Remote settings management** - Edit dashboards from any device on your network via web browser
 - **Self-signed certificate support** - Works with internal dashboards using self-signed SSL certificates
@@ -189,8 +213,12 @@ Add this line:
 4. Manage dashboards:
    - Reorder using the up/down arrows
    - Adjust duration directly in the list
+   - Edit dashboards by clicking the pencil icon (form fields populate with current values)
    - Delete unwanted dashboards
-5. Click "Save & Close" to apply changes
+5. Display Settings:
+   - **Full Screen Mode** - Toggle between fullscreen and windowed mode
+   - When windowed, drag the title bar to move and use window edges to resize
+6. Click "Save & Close" to apply changes
 
 ### Remote Settings (Web Interface)
 
@@ -236,9 +264,16 @@ Settings are stored locally in:
       "duration": 45
     }
   ],
-  "webServerPort": 3000
+  "webServerPort": 3000,
+  "fullscreen": true
 }
 ```
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `dashboards` | Array of dashboard configurations | `[]` |
+| `webServerPort` | Port for the remote settings web server | `3000` |
+| `fullscreen` | Display in fullscreen mode | `true` |
 
 ## Troubleshooting
 

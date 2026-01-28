@@ -9,6 +9,13 @@
 </head>
 <body>
   <div id="app">
+    <!-- Title Bar (shown when not fullscreen) -->
+    <div id="title-bar" class="hidden">
+      <span class="title-text">NOC Dashboard Center</span>
+    </div>
+
+    <!-- Resize Handle (shown when not fullscreen) -->
+    <div id="resize-handle" class="hidden"></div>
     <!-- Welcome Screen -->
     <div id="welcome-screen" class="hidden">
       <div class="welcome-content">
@@ -73,13 +80,27 @@
               <label for="new-duration">Display Duration (seconds)</label>
               <input type="number" id="new-duration" min="5" max="3600" value="30">
             </div>
-            <button id="add-dashboard-btn" class="primary-btn">Add Dashboard</button>
+            <div class="form-buttons">
+              <button id="add-dashboard-btn" class="primary-btn">Add Dashboard</button>
+              <button id="cancel-edit-btn" class="secondary-btn hidden" onclick="cancelEdit()">Cancel</button>
+            </div>
           </div>
 
           <div class="dashboard-list">
             <h3>Configured Dashboards</h3>
             <div id="dashboards-container">
               <p class="empty-message">No dashboards configured.</p>
+            </div>
+          </div>
+
+          <div class="display-settings">
+            <h3>Display Settings</h3>
+            <div class="form-group checkbox-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="fullscreen-checkbox" checked>
+                <span>Full Screen Mode</span>
+              </label>
+              <p class="help-text">Toggle fullscreen mode. App always starts in fullscreen.</p>
             </div>
           </div>
         </div>

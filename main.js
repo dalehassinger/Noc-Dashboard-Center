@@ -31,12 +31,16 @@ function loadSettings() {
       if (!settings.webServerPort) {
         settings.webServerPort = 3000;
       }
+      // Ensure fullscreen has a default value (true)
+      if (settings.fullscreen === undefined) {
+        settings.fullscreen = true;
+      }
       return settings;
     }
   } catch (error) {
     console.error('Error loading settings:', error);
   }
-  return { dashboards: [], webServerPort: 3000 };
+  return { dashboards: [], webServerPort: 3000, fullscreen: true };
 }
 
 function saveSettings(settings) {
@@ -54,9 +58,13 @@ function createWindow() {
   // Remove application menu
   Menu.setApplicationMenu(null);
 
+  // Always start fullscreen with no frame
   mainWindow = new BrowserWindow({
     fullscreen: true,
     frame: false,
+    thickFrame: true,  // Enable thick frame for better resize handles on Windows
+    minWidth: 800,
+    minHeight: 600,
     autoHideMenuBar: true,
     backgroundColor: '#1a1a2e',
     webPreferences: {
@@ -120,6 +128,19 @@ app.whenReady().then(() => {
 
   ipcMain.handle('close-app', () => {
     app.quit();
+  });
+
+  ipcMain.handle('set-fullscreen', (_event, isFullscreen) => {
+    if (mainWindow) {
+      mainWindow.setFullScreen(isFullscreen);
+      mainWindow.setResizable(!isFullscreen);
+      mainWindow.setMovable(!isFullscreen);
+      // Set a reasonable size when exiting fullscreen
+      if (!isFullscreen) {
+        mainWindow.setSize(1280, 800);
+        mainWindow.center();
+      }
+    }
   });
 
   ipcMain.handle('get-server-info', () => {

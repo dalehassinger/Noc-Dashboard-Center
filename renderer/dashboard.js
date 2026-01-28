@@ -1,10 +1,11 @@
 // State
-let settings = { dashboards: [] };
+let settings = { dashboards: [], fullscreen: true };
 let currentIndex = 0;
 let rotationTimer = null;
 let progressTimer = null;
 let progressStartTime = null;
 let isSettingsOpen = false;
+let editingIndex = -1; // -1 means adding new, >= 0 means editing existing
 
 // DOM Elements
 const welcomeScreen = document.getElementById('welcome-screen');
@@ -40,6 +41,11 @@ function setupEventListeners() {
 
   // Save settings button
   document.getElementById('save-settings-btn').addEventListener('click', saveAndClose);
+
+  // Fullscreen checkbox
+  document.getElementById('fullscreen-checkbox').addEventListener('change', (e) => {
+    settings.fullscreen = e.target.checked;
+  });
 
   // Webview events
   webview.addEventListener('did-start-loading', () => {
@@ -171,13 +177,18 @@ function stopRotation() {
 
 function openSettings() {
   isSettingsOpen = true;
+  editingIndex = -1; // Reset editing state
   renderDashboardList();
   settingsModal.classList.remove('hidden');
 
-  // Clear add form
+  // Clear add form and reset button
   document.getElementById('new-description').value = '';
   document.getElementById('new-url').value = '';
   document.getElementById('new-duration').value = '30';
+  document.getElementById('add-dashboard-btn').textContent = 'Add Dashboard';
+
+  // Set fullscreen checkbox
+  document.getElementById('fullscreen-checkbox').checked = settings.fullscreen !== false;
 }
 
 function closeSettings() {
@@ -188,10 +199,28 @@ function closeSettings() {
 async function saveAndClose() {
   const success = await window.electronAPI.saveSettings(settings);
   if (success) {
+    // Apply fullscreen setting immediately
+    const isFullscreen = settings.fullscreen !== false;
+    await window.electronAPI.setFullscreen(isFullscreen);
+    updateWindowMode(isFullscreen);
     closeSettings();
     updateView();
   } else {
     alert('Failed to save settings');
+  }
+}
+
+function updateWindowMode(isFullscreen) {
+  const titleBar = document.getElementById('title-bar');
+  const resizeHandle = document.getElementById('resize-handle');
+  if (isFullscreen) {
+    titleBar.classList.add('hidden');
+    resizeHandle.classList.add('hidden');
+    document.body.classList.remove('windowed');
+  } else {
+    titleBar.classList.remove('hidden');
+    resizeHandle.classList.remove('hidden');
+    document.body.classList.add('windowed');
   }
 }
 
@@ -222,7 +251,16 @@ function addDashboard() {
     return;
   }
 
-  settings.dashboards.push({ description, url, duration });
+  if (editingIndex >= 0) {
+    // Update existing dashboard
+    settings.dashboards[editingIndex] = { description, url, duration };
+    editingIndex = -1;
+    document.getElementById('add-dashboard-btn').textContent = 'Add Dashboard';
+    document.getElementById('cancel-edit-btn').classList.add('hidden');
+  } else {
+    // Add new dashboard
+    settings.dashboards.push({ description, url, duration });
+  }
   renderDashboardList();
 
   // Clear inputs
@@ -244,6 +282,35 @@ function isValidUrl(string) {
 function removeDashboard(index) {
   settings.dashboards.splice(index, 1);
   renderDashboardList();
+}
+
+function editDashboard(index) {
+  const dashboard = settings.dashboards[index];
+  editingIndex = index;
+
+  // Populate the form with existing values
+  document.getElementById('new-description').value = dashboard.description || '';
+  document.getElementById('new-url').value = dashboard.url;
+  document.getElementById('new-duration').value = dashboard.duration;
+
+  // Change button text to indicate editing and show cancel button
+  document.getElementById('add-dashboard-btn').textContent = 'Update Dashboard';
+  document.getElementById('cancel-edit-btn').classList.remove('hidden');
+
+  // Scroll to the form
+  document.querySelector('.add-dashboard').scrollIntoView({ behavior: 'smooth' });
+
+  // Focus on the description field
+  document.getElementById('new-description').focus();
+}
+
+function cancelEdit() {
+  editingIndex = -1;
+  document.getElementById('new-description').value = '';
+  document.getElementById('new-url').value = '';
+  document.getElementById('new-duration').value = '30';
+  document.getElementById('add-dashboard-btn').textContent = 'Add Dashboard';
+  document.getElementById('cancel-edit-btn').classList.add('hidden');
 }
 
 function moveDashboard(index, direction) {
@@ -286,6 +353,9 @@ function renderDashboardList() {
         <button class="icon-btn move-btn" onclick="moveDashboard(${index}, 1)" title="Move down" ${index === settings.dashboards.length - 1 ? 'disabled' : ''}>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </button>
+        <button class="icon-btn edit-btn" onclick="editDashboard(${index})" title="Edit">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        </button>
         <button class="icon-btn delete-btn" onclick="removeDashboard(${index})" title="Remove">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
@@ -309,6 +379,8 @@ function truncateUrl(url) {
 // Make functions globally accessible for inline handlers
 window.removeDashboard = removeDashboard;
 window.moveDashboard = moveDashboard;
+window.editDashboard = editDashboard;
+window.cancelEdit = cancelEdit;
 window.updateDashboardDuration = updateDashboardDuration;
 
 // Initialize when DOM is ready
