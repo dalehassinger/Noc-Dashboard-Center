@@ -35,12 +35,16 @@ function loadSettings() {
       if (settings.fullscreen === undefined) {
         settings.fullscreen = true;
       }
+      // Ensure pin has a default value
+      if (!settings.pin) {
+        settings.pin = '1234';
+      }
       return settings;
     }
   } catch (error) {
     console.error('Error loading settings:', error);
   }
-  return { dashboards: [], webServerPort: 3000, fullscreen: true };
+  return { dashboards: [], webServerPort: 3000, fullscreen: true, pin: '1234' };
 }
 
 function saveSettings(settings) {

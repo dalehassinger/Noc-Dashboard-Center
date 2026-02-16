@@ -57,6 +57,22 @@
       <div id="progress-bar"></div>
     </div>
 
+    <!-- PIN Modal -->
+    <div id="pin-modal" class="hidden">
+      <div class="pin-content">
+        <h2>Enter PIN</h2>
+        <p class="pin-subtitle">Enter your 4-digit PIN to access settings</p>
+        <div class="pin-input-container">
+          <input type="password" id="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" autocomplete="off" placeholder="----">
+        </div>
+        <p id="pin-error" class="pin-error hidden">Incorrect PIN</p>
+        <div class="pin-buttons">
+          <button id="pin-cancel-btn" class="secondary-btn">Cancel</button>
+          <button id="pin-submit-btn" class="primary-btn">Unlock</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Settings Modal -->
     <div id="settings-modal" class="hidden">
       <div class="settings-content">
@@ -102,6 +118,23 @@
               </label>
               <p class="help-text">Toggle fullscreen mode. App always starts in fullscreen.</p>
             </div>
+          </div>
+
+          <div class="pin-settings">
+            <h3>Security</h3>
+            <div class="form-group">
+              <label for="current-pin">Current PIN</label>
+              <input type="password" id="current-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="Current PIN">
+            </div>
+            <div class="form-group">
+              <label for="new-pin">New PIN (4 digits)</label>
+              <input type="password" id="new-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="New 4-digit PIN">
+            </div>
+            <div class="form-group">
+              <label for="confirm-pin">Confirm New PIN</label>
+              <input type="password" id="confirm-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="Confirm new PIN">
+            </div>
+            <button id="change-pin-btn" class="secondary-btn">Change PIN</button>
           </div>
         </div>
 

@@ -4,6 +4,24 @@ A full-screen dashboard rotation application designed for Network Operations Cen
 
 ## Release Notes
 
+### Version 1.3.0 - February 16, 2026
+
+**New Features:**
+- **PIN Protection** - A 4-digit numeric PIN is now required to access settings
+  - Default PIN is `1234`
+  - PIN prompt appears in both the Electron app and the web interface
+  - PIN can be changed from either interface under the "Security" section
+  - Web settings page shows a full-screen lock screen until the correct PIN is entered
+
+### Version 1.2.0 - February 16, 2026
+
+**New Features:**
+- **Enable/Disable Dashboards** - Toggle individual dashboards on or off without deleting them
+  - Toggle switch on each dashboard entry in both the app and web settings
+  - Disabled dashboards are visually dimmed and skipped during rotation
+  - Dashboard configuration is preserved when disabled
+  - Welcome screen shows if all dashboards are disabled
+
 ### Version 1.1.0 - January 27, 2026
 
 **New Features:**
@@ -28,6 +46,8 @@ A full-screen dashboard rotation application designed for Network Operations Cen
 ## Features
 
 - **Full-screen dashboard rotation** - Automatically cycles through configured dashboards
+- **Enable/Disable dashboards** - Toggle individual dashboards on or off without losing their configuration
+- **PIN-protected settings** - 4-digit PIN required to access settings (default: `1234`), changeable from either interface
 - **Fullscreen/Windowed mode** - Toggle between fullscreen and windowed mode; app always starts fullscreen
 - **Configurable display duration** - Set how long each dashboard is displayed (5-3600 seconds)
 - **Remote settings management** - Edit dashboards from any device on your network via web browser
@@ -205,20 +225,24 @@ Add this line:
 
 1. Move your mouse to reveal the gear icon in the top-right corner
 2. Click the gear icon or press `Ctrl+S` / `Cmd+S`
-3. Add dashboards:
+3. Enter your 4-digit PIN (default: `1234`) to unlock settings
+4. Add dashboards:
    - Enter a description (e.g., "Network Status")
    - Enter the dashboard URL
    - Set the display duration in seconds
    - Click "Add Dashboard"
-4. Manage dashboards:
+5. Manage dashboards:
+   - Enable/disable dashboards using the toggle switch (disabled dashboards are skipped during rotation)
    - Reorder using the up/down arrows
    - Adjust duration directly in the list
    - Edit dashboards by clicking the pencil icon (form fields populate with current values)
    - Delete unwanted dashboards
-5. Display Settings:
+6. Display Settings:
    - **Full Screen Mode** - Toggle between fullscreen and windowed mode
    - When windowed, drag the title bar to move and use window edges to resize
-6. Click "Save & Close" to apply changes
+7. Security:
+   - Change the settings PIN by entering your current PIN, then setting a new 4-digit PIN
+8. Click "Save & Close" to apply changes
 
 ### Remote Settings (Web Interface)
 
@@ -234,13 +258,18 @@ The application includes a built-in web server for remote configuration.
 
 2. **Access from any device**: Open a web browser on your phone, tablet, or computer and navigate to the network URL (e.g., `http://192.168.1.100:3000`)
 
-3. **Manage dashboards**: The web interface provides the same functionality as local settings:
+3. **Enter your PIN**: The web interface requires your 4-digit PIN before showing settings (default: `1234`)
+
+4. **Manage dashboards**: The web interface provides the same functionality as local settings:
    - Add new dashboards with description, URL, and duration
+   - Enable/disable dashboards with toggle switches
    - Edit existing dashboards
    - Reorder and delete dashboards
    - Changes sync automatically to the running application
 
-4. **Change server port**: In the web interface under "Server Settings", you can change the web server port. The server will restart on the new port.
+5. **Change server port**: In the web interface under "Server Settings", you can change the web server port. The server will restart on the new port.
+
+6. **Change PIN**: Under the "Security" section, you can change the settings PIN.
 
 ### Configuration Storage
 
@@ -256,24 +285,29 @@ Settings are stored locally in:
     {
       "description": "Network Status",
       "url": "https://vcf.example.com/dashboard/network",
-      "duration": 30
+      "duration": 30,
+      "enabled": true
     },
     {
       "description": "Server Health",
       "url": "https://monitoring.example.com/servers",
-      "duration": 45
+      "duration": 45,
+      "enabled": false
     }
   ],
   "webServerPort": 3000,
-  "fullscreen": true
+  "fullscreen": true,
+  "pin": "1234"
 }
 ```
 
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `dashboards` | Array of dashboard configurations | `[]` |
+| `dashboards[].enabled` | Whether the dashboard is included in rotation | `true` |
 | `webServerPort` | Port for the remote settings web server | `3000` |
 | `fullscreen` | Display in fullscreen mode | `true` |
+| `pin` | 4-digit numeric PIN for settings access | `"1234"` |
 
 ## Troubleshooting
 
@@ -289,6 +323,19 @@ The application is configured to accept self-signed certificates, which is commo
 - Ensure the desktop environment is starting
 - Check service logs: `journalctl -u noc-dashboard.service`
 - Verify DISPLAY environment variable is set
+
+### Forgot the settings PIN
+If you forget your PIN, you can reset it by editing the settings file directly:
+- **macOS**: `~/Library/Application Support/noc-dashboard-center/settings.json`
+- **Linux/Pi**: `~/.config/noc-dashboard-center/settings.json`
+
+Open the file in a text editor and change the `"pin"` value back to `"1234"` (or any 4-digit number), then restart the application.
+
+```bash
+# Example: reset PIN on macOS
+nano ~/Library/Application\ Support/noc-dashboard-center/settings.json
+# Change "pin": "xxxx" to "pin": "1234", save and restart the app
+```
 
 ### Application won't start
 ```bash

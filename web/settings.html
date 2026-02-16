@@ -259,6 +259,57 @@
     .dashboard-actions {
       display: flex;
       gap: 8px;
+      align-items: center;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: #4a5568;
+      border-radius: 24px;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider:before {
+      content: "";
+      position: absolute;
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: #48bb78;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
+    .dashboard-item.disabled {
+      opacity: 0.5;
+    }
+
+    .dashboard-item.disabled .dashboard-url {
+      color: #718096;
     }
 
     .empty-state {
@@ -280,6 +331,66 @@
     .server-settings .form-group {
       margin-bottom: 0;
       flex: 0 0 120px;
+    }
+
+    /* PIN Lock Screen */
+    .pin-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+
+    .pin-box {
+      background: rgba(45, 55, 72, 0.9);
+      border-radius: 16px;
+      padding: 40px;
+      text-align: center;
+      width: 340px;
+    }
+
+    .pin-box h1 {
+      color: #4da8da;
+      font-size: 1.5rem;
+      margin-bottom: 8px;
+    }
+
+    .pin-box p {
+      color: #718096;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    .pin-box input[type="password"] {
+      width: 160px;
+      padding: 14px;
+      border: 2px solid #3d4a5c;
+      border-radius: 8px;
+      background: #1a202c;
+      color: #e0e0e0;
+      font-size: 1.8rem;
+      text-align: center;
+      letter-spacing: 12px;
+      margin-bottom: 16px;
+    }
+
+    .pin-box input[type="password"]:focus {
+      outline: none;
+      border-color: #4da8da;
+    }
+
+    .pin-box .pin-error {
+      color: #f56565;
+      font-size: 0.85rem;
+      margin-bottom: 16px;
+      min-height: 20px;
+    }
+
+    .pin-box button {
+      width: 160px;
     }
 
     .toast {
@@ -337,7 +448,20 @@
   </style>
 </head>
 <body>
-  <div class="container">
+  <!-- PIN Lock Screen -->
+  <div class="pin-overlay" id="pin-overlay">
+    <div class="pin-box">
+      <h1>NOC Dashboard Settings</h1>
+      <p>Enter your 4-digit PIN to access settings</p>
+      <div>
+        <input type="password" id="login-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" autocomplete="off" placeholder="----">
+      </div>
+      <p class="pin-error" id="login-pin-error">&nbsp;</p>
+      <button class="btn btn-primary" id="login-pin-btn">Unlock</button>
+    </div>
+  </div>
+
+  <div class="container hidden" id="main-content">
     <header>
       <h1>NOC Dashboard Settings</h1>
       <p>Remote configuration for NOC Dashboard Center</p>
@@ -408,13 +532,70 @@
         Changing the port will restart the web server. You'll need to reconnect using the new port.
       </p>
     </div>
+
+    <div class="card">
+      <h2>Security</h2>
+      <div class="form-group">
+        <label for="web-current-pin">Current PIN</label>
+        <input type="password" id="web-current-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="Current PIN" style="max-width: 200px;">
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="max-width: 200px;">
+          <label for="web-new-pin">New PIN (4 digits)</label>
+          <input type="password" id="web-new-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="New PIN">
+        </div>
+        <div class="form-group" style="max-width: 200px;">
+          <label for="web-confirm-pin">Confirm New PIN</label>
+          <input type="password" id="web-confirm-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="Confirm PIN">
+        </div>
+      </div>
+      <button class="btn btn-secondary" id="change-pin-btn">Change PIN</button>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <script>
-    let settings = { dashboards: [], webServerPort: 3000, fullscreen: true };
+    let settings = { dashboards: [], webServerPort: 3000, fullscreen: true, pin: '1234' };
     let editingIndex = -1; // -1 means adding new, >= 0 means editing existing
+    let isUnlocked = false;
+
+    // PIN login
+    async function attemptLogin() {
+      const pinInput = document.getElementById('login-pin');
+      const pinError = document.getElementById('login-pin-error');
+      const enteredPin = pinInput.value;
+
+      // Fetch settings to get current PIN
+      try {
+        const response = await fetch('/api/settings');
+        if (response.ok) {
+          const s = await response.json();
+          const correctPin = s.pin || '1234';
+          if (enteredPin === correctPin) {
+            isUnlocked = true;
+            document.getElementById('pin-overlay').classList.add('hidden');
+            document.getElementById('main-content').classList.remove('hidden');
+            loadSettings();
+            loadStatus();
+            return;
+          }
+        }
+      } catch (e) {
+        pinError.textContent = 'Connection error';
+        return;
+      }
+
+      pinError.textContent = 'Incorrect PIN';
+      pinInput.value = '';
+      pinInput.focus();
+    }
+
+    document.getElementById('login-pin-btn').addEventListener('click', attemptLogin);
+    document.getElementById('login-pin').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') attemptLogin();
+    });
+    document.getElementById('login-pin').focus();
 
     async function loadSettings() {
       try {
@@ -424,6 +605,7 @@
           if (!settings.dashboards) settings.dashboards = [];
           if (!settings.webServerPort) settings.webServerPort = 3000;
           if (settings.fullscreen === undefined) settings.fullscreen = true;
+          if (!settings.pin) settings.pin = '1234';
           renderDashboards();
           document.getElementById('server-port').value = settings.webServerPort;
           document.getElementById('fullscreen-checkbox').checked = settings.fullscreen !== false;
@@ -486,7 +668,7 @@
       }
 
       container.innerHTML = settings.dashboards.map((dashboard, index) => `
-        <div class="dashboard-item">
+        <div class="dashboard-item${dashboard.enabled === false ? ' disabled' : ''}">
           <div class="dashboard-order">
             <button onclick="moveDashboard(${index}, -1)" ${index === 0 ? 'disabled' : ''}>&#9650;</button>
             <button onclick="moveDashboard(${index}, 1)" ${index === settings.dashboards.length - 1 ? 'disabled' : ''}>&#9660;</button>
@@ -497,6 +679,10 @@
             <div class="dashboard-duration">${dashboard.duration} seconds</div>
           </div>
           <div class="dashboard-actions">
+            <label class="toggle-switch" title="${dashboard.enabled !== false ? 'Enabled' : 'Disabled'}">
+              <input type="checkbox" ${dashboard.enabled !== false ? 'checked' : ''} onchange="toggleDashboard(${index}, this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
             <button class="btn btn-secondary btn-small" onclick="editDashboard(${index})">Edit</button>
             <button class="btn btn-danger btn-small" onclick="deleteDashboard(${index})">Delete</button>
           </div>
@@ -530,15 +716,16 @@
       }
 
       if (editingIndex >= 0) {
-        // Update existing dashboard
-        settings.dashboards[editingIndex] = { description, url, duration };
+        // Update existing dashboard - preserve enabled state
+        const wasEnabled = settings.dashboards[editingIndex].enabled;
+        settings.dashboards[editingIndex] = { description, url, duration, enabled: wasEnabled !== false };
         editingIndex = -1;
         document.getElementById('add-btn').textContent = 'Add Dashboard';
         document.getElementById('cancel-edit-btn').classList.add('hidden');
         showToast('Dashboard updated');
       } else {
         // Add new dashboard
-        settings.dashboards.push({ description, url, duration });
+        settings.dashboards.push({ description, url, duration, enabled: true });
         showToast('Dashboard added');
       }
       renderDashboards();
@@ -584,6 +771,12 @@
         renderDashboards();
         saveSettings();
       }
+    }
+
+    function toggleDashboard(index, enabled) {
+      settings.dashboards[index].enabled = enabled;
+      renderDashboards();
+      saveSettings();
     }
 
     function moveDashboard(index, direction) {
@@ -634,9 +827,39 @@
       }, 3000);
     }
 
+    async function changePin() {
+      const currentPin = document.getElementById('web-current-pin').value;
+      const newPin = document.getElementById('web-new-pin').value;
+      const confirmPin = document.getElementById('web-confirm-pin').value;
+
+      if (currentPin !== (settings.pin || '1234')) {
+        showToast('Current PIN is incorrect', true);
+        return;
+      }
+
+      if (!/^\d{4}$/.test(newPin)) {
+        showToast('New PIN must be exactly 4 digits', true);
+        return;
+      }
+
+      if (newPin !== confirmPin) {
+        showToast('New PINs do not match', true);
+        return;
+      }
+
+      settings.pin = newPin;
+      if (await saveSettings()) {
+        showToast('PIN changed successfully');
+        document.getElementById('web-current-pin').value = '';
+        document.getElementById('web-new-pin').value = '';
+        document.getElementById('web-confirm-pin').value = '';
+      }
+    }
+
     // Event listeners
     document.getElementById('add-btn').addEventListener('click', addDashboard);
     document.getElementById('save-port-btn').addEventListener('click', updatePort);
+    document.getElementById('change-pin-btn').addEventListener('click', changePin);
 
     document.getElementById('new-url').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') addDashboard();
@@ -649,9 +872,7 @@
       }
     });
 
-    // Initial load
-    loadSettings();
-    loadStatus();
+    // Initial load is triggered after PIN login succeeds
   </script>
 </body>
 </html>

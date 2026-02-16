@@ -5,6 +5,7 @@ let rotationTimer = null;
 let progressTimer = null;
 let progressStartTime = null;
 let isSettingsOpen = false;
+let isPinModalOpen = false;
 let editingIndex = -1; // -1 means adding new, >= 0 means editing existing
 
 // DOM Elements
@@ -28,10 +29,10 @@ async function init() {
 
 function setupEventListeners() {
   // Settings icon click
-  settingsIcon.addEventListener('click', openSettings);
+  settingsIcon.addEventListener('click', promptForPin);
 
   // Welcome screen button
-  document.getElementById('welcome-settings-btn').addEventListener('click', openSettings);
+  document.getElementById('welcome-settings-btn').addEventListener('click', promptForPin);
 
   // Close settings
   document.getElementById('close-settings').addEventListener('click', closeSettings);
@@ -41,6 +42,16 @@ function setupEventListeners() {
 
   // Save settings button
   document.getElementById('save-settings-btn').addEventListener('click', saveAndClose);
+
+  // Change PIN button
+  document.getElementById('change-pin-btn').addEventListener('click', changePin);
+
+  // PIN modal buttons
+  document.getElementById('pin-submit-btn').addEventListener('click', submitPin);
+  document.getElementById('pin-cancel-btn').addEventListener('click', closePinModal);
+  document.getElementById('pin-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') submitPin();
+  });
 
   // Fullscreen checkbox
   document.getElementById('fullscreen-checkbox').addEventListener('change', (e) => {
@@ -74,7 +85,7 @@ function setupIPCListeners() {
     if (isSettingsOpen) {
       closeSettings();
     } else {
-      openSettings();
+      promptForPin();
     }
   });
 
@@ -83,7 +94,9 @@ function setupIPCListeners() {
   });
 
   window.electronAPI.onEscapePressed(() => {
-    if (isSettingsOpen) {
+    if (isPinModalOpen) {
+      closePinModal();
+    } else if (isSettingsOpen) {
       closeSettings();
     } else {
       window.electronAPI.closeApp();
@@ -104,8 +117,12 @@ function setupIPCListeners() {
   });
 }
 
+function getEnabledDashboards() {
+  return settings.dashboards.filter(d => d.enabled !== false);
+}
+
 function updateView() {
-  if (settings.dashboards.length === 0) {
+  if (getEnabledDashboards().length === 0) {
     showWelcomeScreen();
   } else {
     showDashboards();
@@ -127,7 +144,8 @@ function showDashboards() {
 }
 
 function startRotation() {
-  if (settings.dashboards.length === 0) return;
+  const enabled = getEnabledDashboards();
+  if (enabled.length === 0) return;
 
   currentIndex = 0;
   loadCurrentDashboard();
@@ -136,13 +154,16 @@ function startRotation() {
 function restartRotation() {
   stopRotation();
   currentIndex = 0;
-  if (settings.dashboards.length > 0) {
+  if (getEnabledDashboards().length > 0) {
     loadCurrentDashboard();
   }
 }
 
 function loadCurrentDashboard() {
-  const dashboard = settings.dashboards[currentIndex];
+  const enabled = getEnabledDashboards();
+  if (enabled.length === 0) return;
+
+  const dashboard = enabled[currentIndex % enabled.length];
   if (!dashboard) return;
 
   webview.src = dashboard.url;
@@ -153,7 +174,9 @@ function loadCurrentDashboard() {
 function scheduleNextDashboard(duration) {
   clearTimeout(rotationTimer);
   rotationTimer = setTimeout(() => {
-    currentIndex = (currentIndex + 1) % settings.dashboards.length;
+    const enabled = getEnabledDashboards();
+    if (enabled.length === 0) return;
+    currentIndex = (currentIndex + 1) % enabled.length;
     loadCurrentDashboard();
   }, duration * 1000);
 }
@@ -173,6 +196,71 @@ function stopRotation() {
   clearTimeout(rotationTimer);
   progressBar.style.transition = 'none';
   progressBar.style.width = '0%';
+}
+
+function promptForPin() {
+  if (isSettingsOpen || isPinModalOpen) return;
+  isPinModalOpen = true;
+  const pinModal = document.getElementById('pin-modal');
+  const pinInput = document.getElementById('pin-input');
+  const pinError = document.getElementById('pin-error');
+  pinModal.classList.remove('hidden');
+  pinInput.value = '';
+  pinError.classList.add('hidden');
+  pinInput.focus();
+}
+
+function closePinModal() {
+  isPinModalOpen = false;
+  document.getElementById('pin-modal').classList.add('hidden');
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').classList.add('hidden');
+}
+
+function submitPin() {
+  const pinInput = document.getElementById('pin-input');
+  const pinError = document.getElementById('pin-error');
+  const enteredPin = pinInput.value;
+  const correctPin = settings.pin || '1234';
+
+  if (enteredPin === correctPin) {
+    closePinModal();
+    openSettings();
+  } else {
+    pinError.classList.remove('hidden');
+    pinInput.value = '';
+    pinInput.focus();
+  }
+}
+
+function changePin() {
+  const currentPin = document.getElementById('current-pin').value;
+  const newPin = document.getElementById('new-pin').value;
+  const confirmPin = document.getElementById('confirm-pin').value;
+
+  if (currentPin !== (settings.pin || '1234')) {
+    alert('Current PIN is incorrect');
+    return;
+  }
+
+  if (!/^\d{4}$/.test(newPin)) {
+    alert('New PIN must be exactly 4 digits');
+    return;
+  }
+
+  if (newPin !== confirmPin) {
+    alert('New PINs do not match');
+    return;
+  }
+
+  settings.pin = newPin;
+
+  // Clear the fields
+  document.getElementById('current-pin').value = '';
+  document.getElementById('new-pin').value = '';
+  document.getElementById('confirm-pin').value = '';
+
+  alert('PIN changed successfully');
 }
 
 function openSettings() {
@@ -252,14 +340,15 @@ function addDashboard() {
   }
 
   if (editingIndex >= 0) {
-    // Update existing dashboard
-    settings.dashboards[editingIndex] = { description, url, duration };
+    // Update existing dashboard - preserve enabled state
+    const wasEnabled = settings.dashboards[editingIndex].enabled;
+    settings.dashboards[editingIndex] = { description, url, duration, enabled: wasEnabled !== false };
     editingIndex = -1;
     document.getElementById('add-dashboard-btn').textContent = 'Add Dashboard';
     document.getElementById('cancel-edit-btn').classList.add('hidden');
   } else {
     // Add new dashboard
-    settings.dashboards.push({ description, url, duration });
+    settings.dashboards.push({ description, url, duration, enabled: true });
   }
   renderDashboardList();
 
@@ -313,6 +402,11 @@ function cancelEdit() {
   document.getElementById('cancel-edit-btn').classList.add('hidden');
 }
 
+function toggleDashboard(index, enabled) {
+  settings.dashboards[index].enabled = enabled;
+  renderDashboardList();
+}
+
 function moveDashboard(index, direction) {
   const newIndex = index + direction;
   if (newIndex < 0 || newIndex >= settings.dashboards.length) return;
@@ -337,13 +431,17 @@ function renderDashboardList() {
   }
 
   const html = settings.dashboards.map((dashboard, index) => `
-    <div class="dashboard-item">
+    <div class="dashboard-item${dashboard.enabled === false ? ' disabled' : ''}">
       <div class="dashboard-info">
         <span class="dashboard-number">${index + 1}</span>
         <span class="dashboard-description">${escapeHtml(dashboard.description || 'No description')}</span>
         <span class="dashboard-url" title="${escapeHtml(dashboard.url)}">${escapeHtml(truncateUrl(dashboard.url))}</span>
       </div>
       <div class="dashboard-controls">
+        <label class="toggle-switch" title="${dashboard.enabled !== false ? 'Enabled' : 'Disabled'}">
+          <input type="checkbox" ${dashboard.enabled !== false ? 'checked' : ''} onchange="toggleDashboard(${index}, this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
         <input type="number" class="duration-input" value="${dashboard.duration}" min="5" max="3600"
                onchange="updateDashboardDuration(${index}, this.value)" title="Duration in seconds">
         <span class="duration-label">sec</span>
@@ -382,6 +480,7 @@ window.moveDashboard = moveDashboard;
 window.editDashboard = editDashboard;
 window.cancelEdit = cancelEdit;
 window.updateDashboardDuration = updateDashboardDuration;
+window.toggleDashboard = toggleDashboard;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
