@@ -7,6 +7,10 @@ let progressStartTime = null;
 let isSettingsOpen = false;
 let isPinModalOpen = false;
 let editingIndex = -1; // -1 means adding new, >= 0 means editing existing
+let dragSrcIndex = null;
+let dragHandleArmedIndex = null;
+let pointerDragActive = false;
+let pointerDragIndex = null;
 
 // DOM Elements
 const welcomeScreen = document.getElementById('welcome-screen');
@@ -78,6 +82,12 @@ function setupEventListeners() {
       addDashboard();
     }
   });
+
+  // Delegated drag/drop handlers for reliable row reordering
+  dashboardsContainer.addEventListener('mousedown', onDashboardListMouseDown);
+  dashboardsContainer.addEventListener('dragover', onDashboardListDragOver);
+  dashboardsContainer.addEventListener('drop', onDashboardListDrop);
+  dashboardsContainer.addEventListener('dragend', onDragEnd);
 }
 
 function setupIPCListeners() {
@@ -407,14 +417,134 @@ function toggleDashboard(index, enabled) {
   renderDashboardList();
 }
 
-function moveDashboard(index, direction) {
-  const newIndex = index + direction;
-  if (newIndex < 0 || newIndex >= settings.dashboards.length) return;
+function onDragStart(event, index) {
+  if (dragHandleArmedIndex !== index) {
+    event.preventDefault();
+    return;
+  }
+  dragSrcIndex = index;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(index));
+  setTimeout(() => {
+    const items = document.querySelectorAll('#dashboards-container .dashboard-item');
+    if (items[index]) items[index].classList.add('dragging');
+  }, 0);
+}
 
-  const temp = settings.dashboards[index];
-  settings.dashboards[index] = settings.dashboards[newIndex];
-  settings.dashboards[newIndex] = temp;
+function armRowDrag(index, event) {
+  if (event.button !== 0) return;
+  dragHandleArmedIndex = index;
+}
+
+function clearArmedRowDrag() {
+  dragHandleArmedIndex = null;
+}
+
+function beginPointerReorder(index, event) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+
+  pointerDragActive = true;
+  pointerDragIndex = index;
+  document.body.classList.add('reordering-active');
   renderDashboardList();
+
+  document.addEventListener('mousemove', onPointerReorderMove);
+  document.addEventListener('mouseup', endPointerReorder);
+}
+
+function onPointerReorderMove(event) {
+  if (!pointerDragActive || pointerDragIndex === null) return;
+
+  const elUnderPointer = document.elementFromPoint(event.clientX, event.clientY);
+  const targetRow = elUnderPointer ? elUnderPointer.closest('.dashboard-item') : null;
+  if (!targetRow) return;
+
+  const targetIndex = parseInt(targetRow.dataset.index, 10);
+  if (!Number.isInteger(targetIndex) || targetIndex === pointerDragIndex) return;
+
+  const moved = settings.dashboards.splice(pointerDragIndex, 1)[0];
+  settings.dashboards.splice(targetIndex, 0, moved);
+  pointerDragIndex = targetIndex;
+  renderDashboardList();
+}
+
+function endPointerReorder() {
+  if (!pointerDragActive) return;
+
+  pointerDragActive = false;
+  pointerDragIndex = null;
+  document.body.classList.remove('reordering-active');
+  renderDashboardList();
+
+  document.removeEventListener('mousemove', onPointerReorderMove);
+  document.removeEventListener('mouseup', endPointerReorder);
+}
+
+function onDragOver(event, el) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  document.querySelectorAll('#dashboards-container .dashboard-item').forEach(item => item.classList.remove('drag-over'));
+  el.classList.add('drag-over');
+}
+
+function onDrop(event, targetIndex) {
+  event.preventDefault();
+  if (dragSrcIndex === null) {
+    const srcFromTransfer = parseInt(event.dataTransfer.getData('text/plain'), 10);
+    if (Number.isInteger(srcFromTransfer)) {
+      dragSrcIndex = srcFromTransfer;
+    }
+  }
+  if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+  const moved = settings.dashboards.splice(dragSrcIndex, 1)[0];
+  settings.dashboards.splice(targetIndex, 0, moved);
+  dragSrcIndex = null;
+  clearArmedRowDrag();
+  renderDashboardList();
+}
+
+function onDragEnd(event) {
+  dragSrcIndex = null;
+  clearArmedRowDrag();
+  document.querySelectorAll('#dashboards-container .dashboard-item').forEach(item => {
+    item.classList.remove('dragging', 'drag-over');
+  });
+}
+
+function onDashboardListMouseDown(event) {
+  const handle = event.target.closest('.drag-handle');
+  if (!handle) return;
+
+  const row = handle.closest('.dashboard-item');
+  if (!row) return;
+
+  const index = parseInt(row.dataset.index, 10);
+  if (!Number.isInteger(index)) return;
+
+  armRowDrag(index, event);
+}
+
+function onDashboardListDragOver(event) {
+  const row = event.target.closest('.dashboard-item');
+  if (!row) return;
+  onDragOver(event, row);
+}
+
+function onDashboardListDrop(event) {
+  const row = event.target.closest('.dashboard-item');
+  if (!row) {
+    event.preventDefault();
+    return;
+  }
+
+  const targetIndex = parseInt(row.dataset.index, 10);
+  if (!Number.isInteger(targetIndex)) {
+    event.preventDefault();
+    return;
+  }
+
+  onDrop(event, targetIndex);
 }
 
 function updateDashboardDuration(index, newDuration) {
@@ -431,7 +561,16 @@ function renderDashboardList() {
   }
 
   const html = settings.dashboards.map((dashboard, index) => `
-    <div class="dashboard-item${dashboard.enabled === false ? ' disabled' : ''}">
+    <div class="dashboard-item${dashboard.enabled === false ? ' disabled' : ''}${pointerDragActive && pointerDragIndex === index ? ' dragging' : ''}"
+         data-index="${index}"
+         draggable="false">
+      <div class="drag-handle" title="Drag to reorder" onmousedown="beginPointerReorder(${index}, event)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/>
+          <circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/>
+          <circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/>
+        </svg>
+      </div>
       <div class="dashboard-info">
         <span class="dashboard-number">${index + 1}</span>
         <span class="dashboard-description">${escapeHtml(dashboard.description || 'No description')}</span>
@@ -445,12 +584,6 @@ function renderDashboardList() {
         <input type="number" class="duration-input" value="${dashboard.duration}" min="5" max="3600"
                onchange="updateDashboardDuration(${index}, this.value)" title="Duration in seconds">
         <span class="duration-label">sec</span>
-        <button class="icon-btn move-btn" onclick="moveDashboard(${index}, -1)" title="Move up" ${index === 0 ? 'disabled' : ''}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
-        </button>
-        <button class="icon-btn move-btn" onclick="moveDashboard(${index}, 1)" title="Move down" ${index === settings.dashboards.length - 1 ? 'disabled' : ''}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </button>
         <button class="icon-btn edit-btn" onclick="editDashboard(${index})" title="Edit">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
         </button>
@@ -476,11 +609,18 @@ function truncateUrl(url) {
 
 // Make functions globally accessible for inline handlers
 window.removeDashboard = removeDashboard;
-window.moveDashboard = moveDashboard;
 window.editDashboard = editDashboard;
 window.cancelEdit = cancelEdit;
 window.updateDashboardDuration = updateDashboardDuration;
 window.toggleDashboard = toggleDashboard;
+window.onDragStart = onDragStart;
+window.onDragOver = onDragOver;
+window.onDrop = onDrop;
+window.onDragEnd = onDragEnd;
+window.armRowDrag = armRowDrag;
+window.beginPointerReorder = beginPointerReorder;
+
+document.addEventListener('mouseup', clearArmedRowDrag);
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', init);

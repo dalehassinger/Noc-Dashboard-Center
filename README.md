@@ -4,6 +4,14 @@ A full-screen dashboard rotation application designed for Network Operations Cen
 
 ## Release Notes
 
+### Version 1.4.0 - February 27, 2026
+
+**Improvements:**
+- **Grip-based row reordering (App + Web)** - Dashboard rows can now be reordered reliably by click-holding the grip and moving over other rows
+  - Works in the Electron settings modal and the web settings page
+  - Reorder behavior is consistent across both interfaces
+  - Row order updates immediately in memory and persists when settings are saved
+
 ### Version 1.3.0 - February 16, 2026
 
 **New Features:**
@@ -47,6 +55,7 @@ A full-screen dashboard rotation application designed for Network Operations Cen
 
 - **Full-screen dashboard rotation** - Automatically cycles through configured dashboards
 - **Enable/Disable dashboards** - Toggle individual dashboards on or off without losing their configuration
+- **Drag-to-reorder dashboards** - Reorder dashboard rows using the grip handle in both local and web settings
 - **PIN-protected settings** - 4-digit PIN required to access settings (default: `1234`), changeable from either interface
 - **Fullscreen/Windowed mode** - Toggle between fullscreen and windowed mode; app always starts fullscreen
 - **Configurable display duration** - Set how long each dashboard is displayed (5-3600 seconds)
@@ -55,6 +64,27 @@ A full-screen dashboard rotation application designed for Network Operations Cen
 - **Keyboard shortcuts** - Quick access to settings and controls
 - **Progress bar** - Visual indicator showing time remaining on current dashboard
 - **Dark theme** - Easy on the eyes for 24/7 monitoring environments
+
+## How It Works
+
+1. **Startup**
+  - The app launches in fullscreen and loads `settings.json` from the local user profile.
+  - A built-in web settings server starts on the configured port (default `3000`).
+
+2. **Dashboard Rotation**
+  - Only dashboards with `enabled: true` are included in rotation.
+  - Each dashboard URL is loaded into the display webview for its configured duration.
+  - The bottom progress bar shows time remaining before the next dashboard.
+
+3. **Settings Management (Two Interfaces)**
+  - **Local (Electron modal)** and **Remote (Web page)** both edit the same settings file.
+  - Both interfaces support add, edit, enable/disable, delete, and drag-to-reorder.
+  - PIN changes and fullscreen preference updates are shared between interfaces.
+
+4. **Persistence + Sync**
+  - Settings are persisted to disk.
+  - Changes made from the web interface are pushed to the running app.
+  - Rotation reflects the latest enabled dashboard order and durations.
 
 ## Screenshots
 
@@ -233,7 +263,7 @@ Add this line:
    - Click "Add Dashboard"
 5. Manage dashboards:
    - Enable/disable dashboards using the toggle switch (disabled dashboards are skipped during rotation)
-   - Reorder using the up/down arrows
+  - Reorder by click-holding the grip handle and moving the row over another row
    - Adjust duration directly in the list
    - Edit dashboards by clicking the pencil icon (form fields populate with current values)
    - Delete unwanted dashboards
@@ -264,7 +294,8 @@ The application includes a built-in web server for remote configuration.
    - Add new dashboards with description, URL, and duration
    - Enable/disable dashboards with toggle switches
    - Edit existing dashboards
-   - Reorder and delete dashboards
+  - Reorder dashboards by click-holding the grip handle and moving rows
+  - Delete dashboards
    - Changes sync automatically to the running application
 
 5. **Change server port**: In the web interface under "Server Settings", you can change the web server port. The server will restart on the new port.

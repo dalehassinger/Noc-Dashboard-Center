@@ -206,30 +206,35 @@
       gap: 15px;
     }
 
-    .dashboard-order {
+    .drag-handle {
+      cursor: grab;
+      color: #718096;
+      padding: 0 8px;
       display: flex;
-      flex-direction: column;
-      gap: 4px;
+      align-items: center;
+      flex-shrink: 0;
+      user-select: none;
     }
 
-    .dashboard-order button {
-      background: #4a5568;
-      border: none;
-      color: #e0e0e0;
-      width: 28px;
-      height: 24px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.8rem;
+    .drag-handle:hover {
+      color: #a0aec0;
     }
 
-    .dashboard-order button:hover {
-      background: #5a6578;
+    .drag-handle:active {
+      cursor: grabbing;
     }
 
-    .dashboard-order button:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
+    body.reordering-active {
+      user-select: none;
+    }
+
+    .dashboard-item.dragging {
+      opacity: 0.35;
+    }
+
+    .dashboard-item.drag-over {
+      border-color: #4da8da;
+      background: rgba(77, 168, 218, 0.08);
     }
 
     .dashboard-info {
@@ -558,6 +563,9 @@
   <script>
     let settings = { dashboards: [], webServerPort: 3000, fullscreen: true, pin: '1234' };
     let editingIndex = -1; // -1 means adding new, >= 0 means editing existing
+    let pointerDragActive = false;
+    let pointerDragIndex = null;
+    let pointerDragMoved = false;
     let isUnlocked = false;
 
     // PIN login
@@ -668,10 +676,15 @@
       }
 
       container.innerHTML = settings.dashboards.map((dashboard, index) => `
-        <div class="dashboard-item${dashboard.enabled === false ? ' disabled' : ''}">
-          <div class="dashboard-order">
-            <button onclick="moveDashboard(${index}, -1)" ${index === 0 ? 'disabled' : ''}>&#9650;</button>
-            <button onclick="moveDashboard(${index}, 1)" ${index === settings.dashboards.length - 1 ? 'disabled' : ''}>&#9660;</button>
+        <div class="dashboard-item${dashboard.enabled === false ? ' disabled' : ''}${pointerDragActive && pointerDragIndex === index ? ' dragging' : ''}"
+             data-index="${index}"
+             draggable="false">
+          <div class="drag-handle" title="Drag to reorder" onmousedown="beginPointerReorder(${index}, event)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="5" cy="4" r="1.5"/><circle cx="11" cy="4" r="1.5"/>
+              <circle cx="5" cy="8" r="1.5"/><circle cx="11" cy="8" r="1.5"/>
+              <circle cx="5" cy="12" r="1.5"/><circle cx="11" cy="12" r="1.5"/>
+            </svg>
           </div>
           <div class="dashboard-info">
             <div class="dashboard-description">${escapeHtml(dashboard.description || 'No description')}</div>
@@ -779,16 +792,52 @@
       saveSettings();
     }
 
-    function moveDashboard(index, direction) {
-      const newIndex = index + direction;
-      if (newIndex < 0 || newIndex >= settings.dashboards.length) return;
+    function beginPointerReorder(index, event) {
+      if (event.button !== 0) return;
+      event.preventDefault();
 
-      const temp = settings.dashboards[index];
-      settings.dashboards[index] = settings.dashboards[newIndex];
-      settings.dashboards[newIndex] = temp;
-
+      pointerDragActive = true;
+      pointerDragIndex = index;
+      pointerDragMoved = false;
+      document.body.classList.add('reordering-active');
       renderDashboards();
-      saveSettings();
+
+      document.addEventListener('mousemove', onPointerReorderMove);
+      document.addEventListener('mouseup', endPointerReorder);
+    }
+
+    function onPointerReorderMove(event) {
+      if (!pointerDragActive || pointerDragIndex === null) return;
+
+      const elUnderPointer = document.elementFromPoint(event.clientX, event.clientY);
+      const targetRow = elUnderPointer ? elUnderPointer.closest('.dashboard-item') : null;
+      if (!targetRow) return;
+
+      const targetIndex = parseInt(targetRow.dataset.index, 10);
+      if (!Number.isInteger(targetIndex) || targetIndex === pointerDragIndex) return;
+
+      const moved = settings.dashboards.splice(pointerDragIndex, 1)[0];
+      settings.dashboards.splice(targetIndex, 0, moved);
+      pointerDragIndex = targetIndex;
+      pointerDragMoved = true;
+      renderDashboards();
+    }
+
+    function endPointerReorder() {
+      if (!pointerDragActive) return;
+
+      pointerDragActive = false;
+      pointerDragIndex = null;
+      document.body.classList.remove('reordering-active');
+      renderDashboards();
+
+      document.removeEventListener('mousemove', onPointerReorderMove);
+      document.removeEventListener('mouseup', endPointerReorder);
+
+      if (pointerDragMoved) {
+        saveSettings();
+      }
+      pointerDragMoved = false;
     }
 
     async function updatePort() {

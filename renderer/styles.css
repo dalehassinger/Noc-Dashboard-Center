@@ -491,7 +491,37 @@ body:hover #settings-icon {
   opacity: 0.45;
 }
 
-.move-btn svg,
+.dashboard-item.dragging {
+  opacity: 0.35;
+}
+
+.dashboard-item.drag-over {
+  border-color: var(--accent);
+  background: rgba(233, 69, 96, 0.08);
+}
+
+.drag-handle {
+  cursor: grab;
+  color: var(--text-secondary);
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.drag-handle:hover {
+  color: var(--text-primary);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+body.reordering-active {
+  user-select: none;
+}
+
 .edit-btn svg,
 .delete-btn svg {
   width: 18px;
